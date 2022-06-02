@@ -5,14 +5,15 @@ use std::ffi::CString;
 
 const WINDOW_WIDTH: i32 = 860;
 const WINDOW_HEIGHT: i32 = 660;
+const MAX_FPS_TARGET: u32 = 60;
 
-const MIN_SPEED: f32 = 1.0;
+const MIN_SPEED: f32 = -1.0;
 const MAX_SPEED: f32 = 2.0;
 
 const CONTAMINATION_RADIUS: f32 = 5.0;
 const TOTAL_POPULATION_SIZE: i32 = 600;
-const INITIAL_INFECTED_POPULATION: i32 = 20; // Number of humans initially infected
-const INFECTION_RATE: f32 = 0.02; // Infection rate for the disease (x / 100)
+const INITIAL_INFECTED_POPULATION: i32 = 20;
+const INFECTION_RATE: f32 = 0.02;
 const DEATH_RATE: f32 = 0.01;
 const RECOVERY_RATE: f32 = 0.98;
 
@@ -31,14 +32,28 @@ impl Human {
         let pos_x: f32 = rng.gen_range(start_x..end_x) as f32;
         let pos_y: f32 = rng.gen_range(start_y..end_y) as f32;
 
-        let vel_x: f32 = rng.gen_range(1.0..2.0) as f32;
-        let vel_y: f32 = rng.gen_range(1.0..2.0) as f32;
+        let vel_x: f32 = rng.gen_range(MIN_SPEED..MAX_SPEED) as f32;
+        let vel_y: f32 = rng.gen_range(MIN_SPEED..MAX_SPEED) as f32;
 
         Human {
             pos: Vector2::new(pos_x, pos_y),
             vel: Vector2::new(vel_x, vel_y),
             infected: infected,
             infected_at: NaiveTime::from_hms_milli(0, 0, 0, 0),
+        }
+    }
+
+    fn update_position(&mut self) {
+        self.pos.x += self.vel.x;
+        self.pos.y += self.vel.y;
+    }
+
+    fn wall_bump(&mut self) {
+        if self.pos.x < 0.0 || self.pos.x > WINDOW_WIDTH as f32 {
+            self.vel.x *= -1.0;
+        }
+        if self.pos.y < 0.0 || self.pos.y > WINDOW_HEIGHT as f32 {
+            self.vel.y *= -1.0;
         }
     }
 
@@ -52,11 +67,6 @@ impl Human {
             let new_infected = Human::new(1, 1, WINDOW_WIDTH, WINDOW_HEIGHT, true);
             infected.push(new_infected);
         }
-    }
-
-    fn update_position(&mut self) {
-        self.pos.x += self.vel.x;
-        self.pos.y += self.vel.y;
     }
 
     fn contaminate(
@@ -140,15 +150,6 @@ impl Human {
 
         return infected_end_idx;
     }
-
-    fn wall_bump(&mut self) {
-        if self.pos.x < 0.0 || self.pos.x > WINDOW_WIDTH as f32 {
-            self.vel.x *= -1.0;
-        }
-        if self.pos.y < 0.0 || self.pos.y > WINDOW_HEIGHT as f32 {
-            self.vel.y *= -1.0;
-        }
-    }
 }
 
 fn main() {
@@ -163,7 +164,7 @@ fn main() {
         .size(WINDOW_WIDTH, WINDOW_HEIGHT)
         .title("Simple Pandemic Simulator")
         .build();
-    rl.set_target_fps(60);
+    rl.set_target_fps(MAX_FPS_TARGET);
 
     let mut play: bool = true;
     let mut reset: bool;
